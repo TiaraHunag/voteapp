@@ -1,0 +1,16 @@
+version: 0.2
+env: { variables: { IMAGE_REPO_NAME: voteapp } }
+phases:
+  pre_build:
+    commands:
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - REGION=$(aws configure get region)
+      - REPO_URI=$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_REPO_NAME
+      - aws ecr get-login-password | docker login --username AWS --password-stdin $REPO_URI
+      - IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}
+  build:   { commands: [ "docker build -t $REPO_URI:$IMAGE_TAG ./api" ] }
+  post_build:
+    commands:
+      - docker push $REPO_URI:$IMAGE_TAG
+      - printf '[{"name":"api","imageUri":"%s"}]' $REPO_URI:$IMAGE_TAG > imagedefinitions.json
+artifacts: { files: [ imagedefinitions.json ] }
