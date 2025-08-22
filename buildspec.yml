@@ -9,14 +9,14 @@ phases:
       - REGION=${AWS_DEFAULT_REGION:-$CODEBUILD_BUILD_REGION}
       - REPO_URI=$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_REPO_NAME
       - aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REPO_URI
-      - IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}
+      - IMAGE_TAG=$(echo "$CODEBUILD_RESOLVED_SOURCE_VERSION" | cut -c1-7)
   build:
     commands:
       - docker build -t $REPO_URI:$IMAGE_TAG ./api
   post_build:
     commands:
       - docker push $REPO_URI:$IMAGE_TAG
-      - printf '[{\"name\":\"api\",\"imageUri\":\"%s\"}]' $REPO_URI:$IMAGE_TAG > imagedefinitions.json
+      - printf '[{"name":"api","imageUri":"%s"}]' $REPO_URI:$IMAGE_TAG > imagedefinitions.json
 artifacts:
   files:
     - imagedefinitions.json
